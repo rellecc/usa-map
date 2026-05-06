@@ -1,0 +1,516 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+#wrap{font-family:var(--font-sans);width:100%;background:transparent}
+#map-container{width:100%;height:560px;position:relative;overflow:hidden;border-radius:var(--border-radius-lg);border:1.5px solid #111;background:#cde4f0;cursor:grab}
+#map-container:active{cursor:grabbing}
+svg{width:100%;height:100%}
+#ctrl-panel{padding:6px 0 8px;display:flex;flex-direction:column;gap:5px}
+.cg{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.gl{font-size:11px;color:var(--color-text-secondary);min-width:78px;font-weight:500;flex-shrink:0}
+.lb{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;border:1.5px solid;font-size:11px;font-weight:500;cursor:pointer;background:var(--color-background-primary);user-select:none;white-space:nowrap;transition:background .1s,color .1s}
+.lb .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.lb.on{color:#fff!important}
+#tip{position:absolute;pointer-events:none;background:var(--color-background-primary);border:1px solid #333;border-radius:8px;padding:8px 12px;font-size:11.5px;max-width:230px;z-index:30;display:none;line-height:1.65}
+#tip b{font-size:13px;font-weight:500;display:block;margin-bottom:2px}
+#leg{position:absolute;bottom:10px;left:10px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:8px;padding:7px 11px;font-size:11px;display:none;max-width:190px}
+#leg .lt{font-weight:500;margin-bottom:4px;font-size:12px}
+.lr{display:flex;align-items:center;gap:5px;margin-bottom:2px}
+.ls{width:13px;height:13px;border-radius:2px;flex-shrink:0}
+#zc{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:3px}
+.zb{width:28px;height:28px;border-radius:5px;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--color-text-primary)}
+.zb:hover{background:var(--color-background-secondary)}
+#rbtn{position:absolute;top:8px;left:8px;padding:3px 8px;border-radius:5px;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);font-size:11px;cursor:pointer;color:var(--color-text-secondary)}
+</style>
+<h2 class="sr-only">Interactive USA map with split-color state overlays, major cities, and demographic layers</h2>
+<div id="ctrl-panel">
+  <div class="cg">
+    <span class="gl">Base</span>
+    <div class="lb on" id="btn-capitals" data-color="#1d4ed8" onclick="tog('capitals')"><span class="dot" style="background:#1d4ed8"></span>Capitals</div>
+    <div class="lb on" id="btn-cities" data-color="#111827" onclick="tog('cities')"><span class="dot" style="background:#111827"></span>Major cities</div>
+    <div class="lb" id="btn-labels" data-color="#374151" onclick="tog('labels')"><span class="dot" style="background:#374151"></span>State labels</div>
+    <div class="lb" id="btn-interstates" data-color="#dc2626" onclick="tog('interstates')"><span class="dot" style="background:#dc2626"></span>Interstate hubs</div>
+    <div class="lb" id="btn-airports" data-color="#7c3aed" onclick="tog('airports')"><span class="dot" style="background:#7c3aed"></span>Major airports</div>
+  </div>
+  <div class="cg">
+    <span class="gl">Culture</span>
+    <div class="lb" id="btn-dixie" data-color="#b91c1c" onclick="tog('dixie')"><span class="dot" style="background:#b91c1c"></span>Deep South</div>
+    <div class="lb" id="btn-uppersouth" data-color="#f97316" onclick="tog('uppersouth')"><span class="dot" style="background:#f97316"></span>Upper South</div>
+    <div class="lb" id="btn-midwest" data-color="#d97706" onclick="tog('midwest')"><span class="dot" style="background:#d97706"></span>Midwest</div>
+    <div class="lb" id="btn-newengland" data-color="#6d28d9" onclick="tog('newengland')"><span class="dot" style="background:#6d28d9"></span>New England</div>
+    <div class="lb" id="btn-midatlantic" data-color="#0891b2" onclick="tog('midatlantic')"><span class="dot" style="background:#0891b2"></span>Mid-Atlantic</div>
+    <div class="lb" id="btn-plains" data-color="#92400e" onclick="tog('plains')"><span class="dot" style="background:#92400e"></span>Great Plains</div>
+    <div class="lb" id="btn-mountain" data-color="#1d4ed8" onclick="tog('mountain')"><span class="dot" style="background:#1d4ed8"></span>Mountain West</div>
+    <div class="lb" id="btn-southwest" data-color="#b45309" onclick="tog('southwest')"><span class="dot" style="background:#b45309"></span>Southwest</div>
+    <div class="lb" id="btn-westcoast" data-color="#059669" onclick="tog('westcoast')"><span class="dot" style="background:#059669"></span>West Coast</div>
+    <div class="lb" id="btn-pacific" data-color="#0284c7" onclick="tog('pacific')"><span class="dot" style="background:#0284c7"></span>Pacific (AK/HI)</div>
+  </div>
+  <div class="cg">
+    <span class="gl">Politics</span>
+    <div class="lb" id="btn-rep" data-color="#dc2626" onclick="togDemo('rep')"><span class="dot" style="background:#dc2626"></span>Republican 2024</div>
+    <div class="lb" id="btn-dem" data-color="#2563eb" onclick="togDemo('dem')"><span class="dot" style="background:#2563eb"></span>Democrat 2024</div>
+    <div class="lb" id="btn-govgop" data-color="#ef4444" onclick="togDemo('govgop')"><span class="dot" style="background:#ef4444"></span>GOP governor</div>
+    <div class="lb" id="btn-govdem" data-color="#3b82f6" onclick="togDemo('govdem')"><span class="dot" style="background:#3b82f6"></span>Dem governor</div>
+    <div class="lb" id="btn-trifecta" data-color="#7c3aed" onclick="togDemo('trifecta')"><span class="dot" style="background:#7c3aed"></span>Political trifecta</div>
+  </div>
+  <div class="cg">
+    <span class="gl">Civil War</span>
+    <div class="lb" id="btn-csa" data-color="#991b1b" onclick="togDemo('csa')"><span class="dot" style="background:#991b1b"></span>Confederate</div>
+    <div class="lb" id="btn-union" data-color="#1e40af" onclick="togDemo('union')"><span class="dot" style="background:#1e40af"></span>Union</div>
+    <div class="lb" id="btn-border" data-color="#a16207" onclick="togDemo('border')"><span class="dot" style="background:#a16207"></span>Border states</div>
+    <div class="lb" id="btn-territory" data-color="#4b5563" onclick="togDemo('territory')"><span class="dot" style="background:#4b5563"></span>Territory (1861)</div>
+  </div>
+  <div class="cg">
+    <span class="gl">Demographics</span>
+    <div class="lb" id="btn-pop" data-color="#0369a1" onclick="togDemo('pop')"><span class="dot" style="background:#0369a1"></span>Pop. density</div>
+    <div class="lb" id="btn-income" data-color="#16a34a" onclick="togDemo('income')"><span class="dot" style="background:#16a34a"></span>Median income</div>
+    <div class="lb" id="btn-age" data-color="#db2777" onclick="togDemo('age')"><span class="dot" style="background:#db2777"></span>Median age</div>
+    <div class="lb" id="btn-college" data-color="#7c3aed" onclick="togDemo('college')"><span class="dot" style="background:#7c3aed"></span>College rate</div>
+    <div class="lb" id="btn-gdp" data-color="#0f766e" onclick="togDemo('gdp')"><span class="dot" style="background:#0f766e"></span>GDP/capita</div>
+    <div class="lb" id="btn-uninsured" data-color="#dc6b19" onclick="togDemo('uninsured')"><span class="dot" style="background:#dc6b19"></span>Uninsured rate</div>
+    <div class="lb" id="btn-poverty" data-color="#854d0e" onclick="togDemo('poverty')"><span class="dot" style="background:#854d0e"></span>Poverty rate</div>
+  </div>
+  <div class="cg">
+    <span class="gl">Environment</span>
+    <div class="lb" id="btn-temp" data-color="#dc2626" onclick="togDemo('temp')"><span class="dot" style="background:#dc2626"></span>Avg temperature</div>
+    <div class="lb" id="btn-precip" data-color="#2563eb" onclick="togDemo('precip')"><span class="dot" style="background:#2563eb"></span>Annual rainfall</div>
+    <div class="lb" id="btn-elevation" data-color="#6b7280" onclick="togDemo('elevation')"><span class="dot" style="background:#6b7280"></span>Avg elevation</div>
+    <div class="lb" id="btn-drought" data-color="#b45309" onclick="togDemo('drought')"><span class="dot" style="background:#b45309"></span>Drought risk</div>
+  </div>
+  <div class="cg">
+    <span class="gl">Economy</span>
+    <div class="lb" id="btn-unemp" data-color="#6d28d9" onclick="togDemo('unemp')"><span class="dot" style="background:#6d28d9"></span>Unemployment</div>
+    <div class="lb" id="btn-mfg" data-color="#0369a1" onclick="togDemo('mfg')"><span class="dot" style="background:#0369a1"></span>Manufacturing</div>
+    <div class="lb" id="btn-farm" data-color="#4d7c0f" onclick="togDemo('farm')"><span class="dot" style="background:#4d7c0f"></span>Farm economy</div>
+    <div class="lb" id="btn-tech" data-color="#0891b2" onclick="togDemo('tech')"><span class="dot" style="background:#0891b2"></span>Tech jobs</div>
+    <div class="lb" id="btn-tourism" data-color="#b45309" onclick="togDemo('tourism')"><span class="dot" style="background:#b45309"></span>Tourism GDP%</div>
+  </div>
+</div>
+<div id="map-container">
+  <svg id="map-svg"></svg>
+  <div id="tip"></div>
+  <div id="leg"><div class="lt" id="leg-title"></div><div id="leg-body"></div></div>
+  <div id="zc">
+    <button class="zb" onclick="zoomIn()">+</button>
+    <button class="zb" onclick="zoomOut()">−</button>
+  </div>
+  <button id="rbtn" onclick="resetView()">Reset</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+const F2A={'01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT','10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL','18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD','25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE','32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND','39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD','47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV','55':'WI','56':'WY'};
+
+const CATS={
+  dixie:new Set(['MS','AL','SC','GA','LA','AR','FL']),
+  uppersouth:new Set(['VA','NC','TN','KY','WV','OK','TX']),
+  midwest:new Set(['OH','IN','IL','MI','WI','MN','IA','MO','ND','SD']),
+  newengland:new Set(['ME','NH','VT','MA','RI','CT']),
+  midatlantic:new Set(['NY','NJ','PA','DE','MD','DC']),
+  plains:new Set(['NE','KS','OK']),
+  mountain:new Set(['MT','ID','WY','CO','UT','NV']),
+  southwest:new Set(['AZ','NM']),
+  westcoast:new Set(['CA','OR','WA']),
+  pacific:new Set(['AK','HI']),
+  rep:new Set(['AL','AK','AZ','AR','FL','GA','ID','IN','IA','KS','KY','LA','ME','MI','MS','MO','MT','NE','NC','ND','OH','OK','PA','SC','SD','TN','TX','UT','WV','WI','WY']),
+  dem:new Set(['CA','CO','CT','DE','HI','IL','MD','MA','MN','NV','NH','NJ','NM','NY','OR','RI','VA','VT','WA','DC']),
+  govgop:new Set(['AL','AK','AZ','AR','FL','GA','ID','IN','IA','KS','KY','LA','MD','MS','MO','MT','NE','NH','NC','ND','OH','OK','SC','SD','TN','TX','UT','VT','WV','WI','WY']),
+  govdem:new Set(['CA','CO','CT','DE','HI','IL','ME','MA','MI','MN','NV','NJ','NM','NY','OR','PA','RI','VA','WA']),
+  trifecta:new Set(['CA','CO','CT','DE','HI','IL','ME','MA','MI','MN','NJ','NM','NY','OR','RI','WA','AL','AR','FL','GA','ID','IN','IA','KS','KY','LA','MS','MO','MT','NE','ND','OH','OK','SC','SD','TN','TX','UT','WV','WY']),
+  csa:new Set(['SC','MS','FL','AL','GA','LA','TX','VA','AR','TN','NC']),
+  union:new Set(['ME','NH','VT','MA','RI','CT','NY','NJ','PA','OH','IN','IL','MI','WI','MN','IA','OR','CA','WV','NV','KS']),
+  border:new Set(['DE','MD','KY','MO']),
+  territory:new Set(['NE','KS','CO','UT','NV','AZ','NM','ID','MT','WY','ND','SD','WA','OR','MN','IA','AK'])
+};
+
+const CATCOLS={
+  dixie:'#b91c1c',uppersouth:'#f97316',midwest:'#d97706',newengland:'#6d28d9',
+  midatlantic:'#0891b2',plains:'#92400e',mountain:'#1d4ed8',southwest:'#b45309',
+  westcoast:'#059669',pacific:'#0284c7',
+  rep:'#dc2626',dem:'#2563eb',govgop:'#ef4444',govdem:'#3b82f6',trifecta:'#7c3aed',
+  csa:'#991b1b',union:'#1e40af',border:'#a16207',territory:'#4b5563'
+};
+
+const DEMO_LAYERS=['pop','income','age','college','gdp','uninsured','poverty','temp','precip','elevation','drought','unemp','mfg','farm','tech','tourism'];
+const OVERLAY_LAYERS=['dixie','uppersouth','midwest','newengland','midatlantic','plains','mountain','southwest','westcoast','pacific','rep','dem','govgop','govdem','trifecta','csa','union','border','territory'];
+const BASE_LAYERS=['capitals','cities','labels','interstates','airports'];
+
+const STATE={
+  AL:{n:'Alabama',pop:'5.1M',cap:'Montgomery',r:'Deep South'},AK:{n:'Alaska',pop:'733K',cap:'Juneau',r:'Pacific'},
+  AZ:{n:'Arizona',pop:'7.4M',cap:'Phoenix',r:'Southwest'},AR:{n:'Arkansas',pop:'3.0M',cap:'Little Rock',r:'Deep South'},
+  CA:{n:'California',pop:'39.5M',cap:'Sacramento',r:'West Coast'},CO:{n:'Colorado',pop:'5.8M',cap:'Denver',r:'Mountain West'},
+  CT:{n:'Connecticut',pop:'3.6M',cap:'Hartford',r:'New England'},DE:{n:'Delaware',pop:'1.0M',cap:'Dover',r:'Mid-Atlantic'},
+  DC:{n:'Washington DC',pop:'712K',cap:'Washington DC',r:'Mid-Atlantic'},FL:{n:'Florida',pop:'22.6M',cap:'Tallahassee',r:'Deep South'},
+  GA:{n:'Georgia',pop:'10.9M',cap:'Atlanta',r:'Deep South'},HI:{n:'Hawaii',pop:'1.4M',cap:'Honolulu',r:'Pacific'},
+  ID:{n:'Idaho',pop:'1.9M',cap:'Boise',r:'Mountain West'},IL:{n:'Illinois',pop:'12.6M',cap:'Springfield',r:'Midwest'},
+  IN:{n:'Indiana',pop:'6.8M',cap:'Indianapolis',r:'Midwest'},IA:{n:'Iowa',pop:'3.2M',cap:'Des Moines',r:'Midwest'},
+  KS:{n:'Kansas',pop:'2.9M',cap:'Topeka',r:'Great Plains'},KY:{n:'Kentucky',pop:'4.5M',cap:'Frankfort',r:'Upper South'},
+  LA:{n:'Louisiana',pop:'4.6M',cap:'Baton Rouge',r:'Deep South'},ME:{n:'Maine',pop:'1.4M',cap:'Augusta',r:'New England'},
+  MD:{n:'Maryland',pop:'6.2M',cap:'Annapolis',r:'Mid-Atlantic'},MA:{n:'Massachusetts',pop:'7.0M',cap:'Boston',r:'New England'},
+  MI:{n:'Michigan',pop:'10.0M',cap:'Lansing',r:'Midwest'},MN:{n:'Minnesota',pop:'5.7M',cap:'St. Paul',r:'Midwest'},
+  MS:{n:'Mississippi',pop:'2.9M',cap:'Jackson',r:'Deep South'},MO:{n:'Missouri',pop:'6.2M',cap:'Jefferson City',r:'Midwest'},
+  MT:{n:'Montana',pop:'1.1M',cap:'Helena',r:'Mountain West'},NE:{n:'Nebraska',pop:'2.0M',cap:'Lincoln',r:'Great Plains'},
+  NV:{n:'Nevada',pop:'3.1M',cap:'Carson City',r:'Mountain West'},NH:{n:'New Hampshire',pop:'1.4M',cap:'Concord',r:'New England'},
+  NJ:{n:'New Jersey',pop:'9.3M',cap:'Trenton',r:'Mid-Atlantic'},NM:{n:'New Mexico',pop:'2.1M',cap:'Santa Fe',r:'Southwest'},
+  NY:{n:'New York',pop:'19.8M',cap:'Albany',r:'Mid-Atlantic'},NC:{n:'North Carolina',pop:'10.7M',cap:'Raleigh',r:'Upper South'},
+  ND:{n:'North Dakota',pop:'779K',cap:'Bismarck',r:'Great Plains'},OH:{n:'Ohio',pop:'11.8M',cap:'Columbus',r:'Midwest'},
+  OK:{n:'Oklahoma',pop:'4.0M',cap:'Oklahoma City',r:'Upper South'},OR:{n:'Oregon',pop:'4.2M',cap:'Salem',r:'West Coast'},
+  PA:{n:'Pennsylvania',pop:'13.0M',cap:'Harrisburg',r:'Mid-Atlantic'},RI:{n:'Rhode Island',pop:'1.1M',cap:'Providence',r:'New England'},
+  SC:{n:'South Carolina',pop:'5.2M',cap:'Columbia',r:'Deep South'},SD:{n:'South Dakota',pop:'887K',cap:'Pierre',r:'Great Plains'},
+  TN:{n:'Tennessee',pop:'7.0M',cap:'Nashville',r:'Upper South'},TX:{n:'Texas',pop:'30.0M',cap:'Austin',r:'Upper South'},
+  UT:{n:'Utah',pop:'3.4M',cap:'Salt Lake City',r:'Mountain West'},VT:{n:'Vermont',pop:'647K',cap:'Montpelier',r:'New England'},
+  VA:{n:'Virginia',pop:'8.7M',cap:'Richmond',r:'Upper South'},WA:{n:'Washington',pop:'7.8M',cap:'Olympia',r:'West Coast'},
+  WV:{n:'West Virginia',pop:'1.8M',cap:'Charleston',r:'Upper South'},WI:{n:'Wisconsin',pop:'5.9M',cap:'Madison',r:'Midwest'},
+  WY:{n:'Wyoming',pop:'579K',cap:'Cheyenne',r:'Mountain West'}
+};
+
+const DDATA={
+  pop:{AL:98,AK:1,AZ:64,AR:57,CA:254,CO:56,CT:745,DE:504,DC:11000,FL:410,GA:190,HI:220,ID:22,IL:232,IN:188,IA:57,KS:36,KY:113,LA:105,ME:44,MD:636,MA:919,MI:178,MN:72,MS:63,MO:90,MT:7,NE:25,NV:29,NH:153,NJ:1263,NM:17,NY:429,NC:215,ND:11,OH:289,OK:57,OR:44,PA:291,RI:1061,SC:173,SD:11,TN:167,TX:112,UT:39,VT:70,VA:220,WA:117,WV:73,WI:109,WY:6},
+  income:{AL:52000,AK:77000,AZ:62000,AR:50000,CA:84000,CO:82000,CT:86000,DE:72000,DC:92000,FL:61000,GA:65000,HI:89000,ID:60000,IL:72000,IN:61000,IA:65000,KS:62000,KY:55000,LA:51000,ME:62000,MD:91000,MA:91000,MI:62000,MN:77000,MS:46000,MO:60000,MT:57000,NE:65000,NV:63000,NH:80000,NJ:92000,NM:52000,NY:73000,NC:60000,ND:65000,OH:62000,OK:54000,OR:68000,PA:67000,RI:71000,SC:58000,SD:62000,TN:59000,TX:67000,UT:79000,VT:65000,VA:80000,WA:82000,WV:49000,WI:67000,WY:65000},
+  age:{AL:39.2,AK:34.6,AZ:38.1,AR:38.3,CA:37.0,CO:37.0,CT:41.5,DE:41.0,DC:34.0,FL:42.4,GA:36.9,HI:38.7,ID:37.2,IL:38.1,IN:37.9,IA:38.5,KS:37.1,KY:38.6,LA:37.4,ME:45.1,MD:38.9,MA:39.6,MI:40.0,MN:38.9,MS:37.9,MO:38.8,MT:40.6,NE:36.9,NV:38.0,NH:43.3,NJ:39.8,NM:38.1,NY:39.0,NC:38.9,ND:35.5,OH:39.4,OK:37.2,OR:40.0,PA:41.0,RI:39.9,SC:39.4,SD:37.4,TN:38.8,TX:34.9,UT:31.0,VT:43.1,VA:38.4,WA:37.9,WV:42.2,WI:40.0,WY:37.5},
+  college:{AL:0.25,AK:0.29,AZ:0.31,AR:0.23,CA:0.35,CO:0.43,CT:0.40,DE:0.33,DC:0.61,FL:0.31,GA:0.32,HI:0.33,ID:0.27,IL:0.35,IN:0.27,IA:0.29,KS:0.34,KY:0.25,LA:0.25,ME:0.33,MD:0.43,MA:0.46,MI:0.30,MN:0.38,MS:0.22,MO:0.30,MT:0.32,NE:0.33,NV:0.25,NH:0.37,NJ:0.41,NM:0.28,NY:0.38,NC:0.33,ND:0.30,OH:0.30,OK:0.27,OR:0.34,PA:0.33,RI:0.35,SC:0.29,SD:0.29,TN:0.28,TX:0.31,UT:0.35,VT:0.38,VA:0.40,WA:0.38,WV:0.21,WI:0.31,WY:0.28},
+  gdp:{AL:38000,AK:62000,AZ:48000,AR:41000,CA:78000,CO:68000,CT:78000,DE:72000,DC:220000,FL:51000,GA:53000,HI:52000,ID:44000,IL:64000,IN:51000,IA:57000,KS:51000,KY:46000,LA:50000,ME:46000,MD:62000,MA:80000,MI:50000,MN:62000,MS:36000,MO:48000,MT:44000,NE:58000,NV:51000,NH:54000,NJ:72000,NM:41000,NY:90000,NC:52000,ND:62000,OH:52000,OK:47000,OR:57000,PA:56000,RI:54000,SC:45000,SD:57000,TN:52000,TX:63000,UT:57000,VT:50000,VA:62000,WA:78000,WV:38000,WI:54000,WY:60000},
+  uninsured:{AL:10.5,AK:9.8,AZ:11.2,AR:10.8,CA:7.0,CO:7.2,CT:6.0,DE:7.8,DC:4.0,FL:13.5,GA:13.0,HI:4.5,ID:11.0,IL:7.8,IN:10.5,IA:5.8,KS:10.2,KY:7.5,LA:9.5,ME:5.5,MD:6.5,MA:3.5,MI:5.8,MN:4.8,MS:12.5,MO:9.8,MT:8.5,NE:8.5,NV:12.5,NH:6.8,NJ:6.5,NM:10.5,NY:5.5,NC:12.0,ND:7.8,OH:7.2,OK:14.5,OR:6.5,PA:6.5,RI:5.0,SC:12.5,SD:9.5,TN:10.2,TX:18.5,UT:9.5,VT:4.5,VA:8.5,WA:6.5,WV:7.5,WI:6.0,WY:12.0},
+  poverty:{AL:17.5,AK:11.0,AZ:14.5,AR:18.0,CA:12.5,CO:9.5,CT:10.0,DE:11.0,DC:16.0,FL:14.0,GA:15.5,HI:9.0,ID:12.0,IL:12.5,IN:12.5,IA:10.5,KS:12.0,KY:17.5,LA:19.5,ME:12.5,MD:9.5,MA:9.5,MI:14.5,MN:9.0,MS:21.5,MO:14.5,MT:14.5,NE:10.5,NV:13.5,NH:7.5,NJ:9.5,NM:20.5,NY:14.5,NC:15.5,ND:11.5,OH:14.0,OK:17.5,OR:13.0,PA:12.5,RI:12.0,SC:16.0,SD:13.5,TN:16.5,TX:15.5,UT:9.5,VT:11.0,VA:10.5,WA:10.5,WV:19.5,WI:11.5,WY:10.5},
+  temp:{AL:64,AK:27,AZ:76,AR:62,CA:60,CO:46,CT:50,DE:55,DC:57,FL:72,GA:65,HI:77,ID:45,IL:52,IN:52,IA:48,KS:55,KY:56,LA:68,ME:41,MD:55,MA:50,MI:45,MN:41,MS:65,MO:55,MT:41,NE:50,NV:52,NH:44,NJ:53,NM:56,NY:47,NC:59,ND:40,OH:52,OK:61,OR:48,PA:50,RI:51,SC:64,SD:44,TN:60,TX:65,UT:48,VT:43,VA:57,WA:48,WV:52,WI:44,WY:42},
+  precip:{AL:58,AK:22,AZ:13,AR:50,CA:22,CO:17,CT:46,DE:45,DC:39,FL:54,GA:50,HI:63,ID:19,IL:39,IN:41,IA:35,KS:28,KY:46,LA:60,ME:42,MD:43,MA:45,MI:32,MN:28,MS:59,MO:42,MT:15,NE:23,NV:9,NH:42,NJ:46,NM:14,NY:40,NC:50,ND:17,OH:39,OK:36,OR:27,PA:42,RI:47,SC:48,SD:19,TN:53,TX:28,UT:13,VT:40,VA:44,WA:38,WV:45,WI:32,WY:13},
+  elevation:{AL:500,AK:1900,AZ:4100,AR:650,CA:2900,CO:6800,CT:500,DE:60,DC:150,FL:100,GA:600,HI:3030,ID:5000,IL:600,IN:700,IA:1100,KS:2000,KY:750,LA:100,ME:600,MD:350,MA:500,MI:900,MN:1200,MS:300,MO:800,MT:3400,NE:2600,NV:5500,NH:1000,NJ:250,NM:5700,NY:1000,NC:700,ND:1900,OH:850,OK:1300,OR:3300,PA:1100,RI:200,SC:350,SD:2200,TN:900,TX:1700,UT:6100,VT:1000,VA:950,WA:1700,WV:1500,WI:1050,WY:6700},
+  drought:{AL:2,AK:1,AZ:9,AR:3,CA:8,CO:7,CT:2,DE:2,DC:1,FL:4,GA:3,HI:3,ID:6,IL:3,IN:2,IA:3,KS:6,KY:2,LA:3,ME:1,MD:2,MA:2,MI:2,MN:3,MS:3,MO:4,MT:6,NE:5,NV:9,NH:1,NJ:2,NM:9,NY:2,NC:3,ND:6,OH:2,OK:7,OR:6,PA:2,RI:1,SC:3,SD:5,TN:2,TX:8,UT:8,VT:1,VA:2,WA:4,WV:2,WI:2,WY:7},
+  unemp:{AL:3.1,AK:4.1,AZ:3.5,AR:3.2,CA:4.8,CO:3.4,CT:4.3,DE:4.2,DC:5.8,FL:3.1,GA:3.2,HI:2.8,ID:3.0,IL:4.5,IN:3.2,IA:2.8,KS:2.9,KY:4.2,LA:3.8,ME:2.9,MD:2.9,MA:3.4,MI:3.9,MN:3.2,MS:4.2,MO:3.5,MT:2.9,NE:2.5,NV:5.4,NH:2.5,NJ:4.3,NM:4.8,NY:4.2,NC:3.3,ND:2.1,OH:4.1,OK:3.1,OR:4.6,PA:3.9,RI:3.8,SC:3.5,SD:2.1,TN:3.2,TX:3.8,UT:3.0,VT:2.1,VA:2.9,WA:4.5,WV:4.1,WI:3.1,WY:3.5},
+  mfg:{AL:18,AK:4,AZ:10,AR:18,CA:9,CO:7,CT:12,DE:7,DC:1,FL:5,GA:10,HI:3,ID:11,IL:13,IN:29,IA:16,KS:14,KY:21,LA:9,ME:11,MD:5,MA:9,MI:19,MN:13,MS:15,MO:14,MT:6,NE:12,NV:5,NH:12,NJ:8,NM:5,NY:7,NC:16,ND:5,OH:16,OK:10,OR:12,PA:11,RI:12,SC:18,SD:10,TN:17,TX:9,UT:10,VT:12,VA:8,WA:10,WV:8,WI:18,WY:4},
+  farm:{AL:2,AK:1,AZ:3,AR:8,CA:4,CO:5,CT:1,DE:3,DC:0,FL:2,GA:3,HI:2,ID:10,IL:4,IN:5,IA:12,KS:14,KY:4,LA:3,ME:2,MD:1,MA:1,MI:3,MN:8,MS:5,MO:6,MT:12,NE:14,NV:2,NH:1,NJ:1,NM:5,NY:2,NC:4,ND:20,OH:3,OK:7,OR:5,PA:2,RI:1,SC:2,SD:17,TN:3,TX:7,UT:3,VT:4,VA:2,WA:6,WV:1,WI:6,WY:8},
+  tech:{AL:3,AK:2,AZ:7,AR:2,CA:14,CO:9,CT:6,DE:5,DC:12,FL:5,GA:6,HI:3,ID:5,IL:7,IN:4,IA:3,KS:4,KY:3,LA:3,ME:3,MD:10,MA:11,MI:5,MN:7,MS:2,MO:5,MT:3,NE:5,NV:5,NH:7,NJ:8,NM:5,NY:9,NC:7,ND:3,OH:5,OK:3,OR:8,PA:6,RI:5,SC:4,SD:3,TN:4,TX:8,UT:10,VT:5,VA:10,WA:12,WV:2,WI:5,WY:2},
+  tourism:{AL:2,AK:5,AZ:7,AR:2,CA:6,CO:8,CT:3,DE:3,DC:12,FL:12,GA:4,HI:18,ID:5,IL:4,IN:2,IA:2,KS:2,KY:3,LA:7,ME:5,MD:3,MA:5,MI:3,MN:3,MS:3,MO:4,MT:7,NE:2,NV:13,NH:4,NJ:4,NM:5,NY:7,NC:5,ND:2,OH:3,OK:2,OR:5,PA:4,RI:4,SC:5,SD:4,TN:6,TX:4,UT:8,VT:6,VA:4,WA:5,WV:4,WI:3,WY:8}
+};
+
+const LEGENDS={
+  pop:{t:'Pop. density (per mi²)',steps:[[0,'#eff6ff'],[10,'#bfdbfe'],[50,'#38bdf8'],[100,'#0ea5e9'],[200,'#0369a1'],[500,'#0c4a6e']],fmt:v=>v+'/mi²'},
+  income:{t:'Median household income',steps:[[0,'#f0fdf4'],[50000,'#bbf7d0'],[60000,'#4ade80'],[70000,'#16a34a'],[80000,'#15803d'],[90000,'#14532d']],fmt:v=>'$'+(v/1000).toFixed(0)+'k'},
+  age:{t:'Median age',steps:[[30,'#fdf4ff'],[34,'#f0abfc'],[37,'#e879f9'],[40,'#a21caf'],[42,'#86198f'],[44,'#701a75']],fmt:v=>v+' yrs'},
+  college:{t:'College educated (%)',steps:[[0.20,'#f5f3ff'],[0.25,'#ddd6fe'],[0.30,'#a78bfa'],[0.35,'#7c3aed'],[0.40,'#6d28d9'],[0.45,'#3b0764']],fmt:v=>Math.round(v*100)+'%'},
+  gdp:{t:'GDP per capita',steps:[[30000,'#f0fdfa'],[40000,'#ccfbf1'],[50000,'#14b8a6'],[60000,'#0f766e'],[75000,'#115e59'],[100000,'#134e4a']],fmt:v=>'$'+(v/1000).toFixed(0)+'k'},
+  uninsured:{t:'Uninsured rate (%)',steps:[[3,'#fff7ed'],[6,'#fed7aa'],[9,'#fb923c'],[12,'#ea580c'],[15,'#9a3412'],[18,'#7c2d12']],fmt:v=>v+'%'},
+  poverty:{t:'Poverty rate (%)',steps:[[7,'#fefce8'],[10,'#fef08a'],[14,'#fbbf24'],[17,'#d97706'],[20,'#92400e'],[22,'#451a03']],fmt:v=>v+'%'},
+  temp:{t:'Avg annual temp (°F)',steps:[[27,'#eff6ff'],[40,'#bfdbfe'],[50,'#fef9c3'],[60,'#fde047'],[65,'#fb923c'],[72,'#dc2626']],fmt:v=>v+'°F'},
+  precip:{t:'Annual precipitation (in)',steps:[[9,'#fff7ed'],[20,'#fed7aa'],[35,'#7dd3fc'],[45,'#2563eb'],[55,'#1e40af'],[63,'#1e3a8a']],fmt:v=>v+' in'},
+  elevation:{t:'Average elevation (ft)',steps:[[60,'#f0fdf4'],[500,'#bbf7d0'],[1500,'#86efac'],[3000,'#4ade80'],[5500,'#15803d'],[6800,'#14532d']],fmt:v=>v.toLocaleString()+' ft'},
+  drought:{t:'Drought risk (1–10)',steps:[[1,'#f0fdf4'],[3,'#bbf7d0'],[5,'#fde047'],[7,'#f97316'],[8,'#dc2626'],[9,'#7f1d1d']],fmt:v=>'Level '+v},
+  unemp:{t:'Unemployment rate (%)',steps:[[2,'#f0fdf4'],[3,'#bbf7d0'],[4,'#fde047'],[4.5,'#f97316'],[5,'#dc2626'],[6,'#7f1d1d']],fmt:v=>v+'%'},
+  mfg:{t:'Manufacturing jobs (%)',steps:[[0,'#eff6ff'],[5,'#bfdbfe'],[10,'#38bdf8'],[15,'#0369a1'],[20,'#1e3a8a'],[29,'#0c4a6e']],fmt:v=>v+'%'},
+  farm:{t:'Farm economy (%)',steps:[[0,'#fafaf9'],[3,'#d9f99d'],[7,'#84cc16'],[10,'#4d7c0f'],[14,'#365314'],[20,'#1a2e05']],fmt:v=>v+'%'},
+  tech:{t:'Tech jobs (%)',steps:[[0,'#f0fdfa'],[3,'#a5f3fc'],[6,'#22d3ee'],[8,'#0891b2'],[10,'#0e7490'],[14,'#164e63']],fmt:v=>v+'%'},
+  tourism:{t:'Tourism % of state GDP',steps:[[0,'#fdf4ff'],[3,'#f0abfc'],[6,'#d946ef'],[8,'#a21caf'],[12,'#701a75'],[18,'#3b0764']],fmt:v=>v+'%'}
+};
+
+function getDemoColor(layer,val){
+  const cfg=LEGENDS[layer];if(!cfg||val==null)return'#e5e7eb';
+  const steps=cfg.steps;
+  for(let i=steps.length-1;i>=0;i--){if(val>=steps[i][0])return steps[i][1];}
+  return steps[0][1];
+}
+
+const ACTIVE={capitals:true,cities:true,labels:false,interstates:false,airports:false};
+OVERLAY_LAYERS.forEach(l=>ACTIVE[l]=false);
+DEMO_LAYERS.forEach(l=>ACTIVE[l]=false);
+let activeDemo=null;
+
+const CAPS=[
+  {n:'Montgomery',s:'AL',lat:32.361,lng:-86.279,pop:'200K'},{n:'Juneau',s:'AK',lat:58.301,lng:-134.420,pop:'33K'},
+  {n:'Phoenix',s:'AZ',lat:33.448,lng:-112.074,pop:'1.6M'},{n:'Little Rock',s:'AR',lat:34.748,lng:-92.289,pop:'203K'},
+  {n:'Sacramento',s:'CA',lat:38.555,lng:-121.469,pop:'531K'},{n:'Denver',s:'CO',lat:39.739,lng:-104.990,pop:'715K'},
+  {n:'Hartford',s:'CT',lat:41.764,lng:-72.685,pop:'122K'},{n:'Dover',s:'DE',lat:39.158,lng:-75.524,pop:'40K'},
+  {n:'Tallahassee',s:'FL',lat:30.455,lng:-84.253,pop:'196K'},{n:'Atlanta',s:'GA',lat:33.749,lng:-84.388,pop:'498K'},
+  {n:'Honolulu',s:'HI',lat:21.307,lng:-157.857,pop:'345K'},{n:'Boise',s:'ID',lat:43.613,lng:-116.237,pop:'237K'},
+  {n:'Springfield',s:'IL',lat:39.783,lng:-89.650,pop:'114K'},{n:'Indianapolis',s:'IN',lat:39.768,lng:-86.158,pop:'887K'},
+  {n:'Des Moines',s:'IA',lat:41.590,lng:-93.620,pop:'214K'},{n:'Topeka',s:'KS',lat:39.049,lng:-95.678,pop:'126K'},
+  {n:'Frankfort',s:'KY',lat:38.197,lng:-84.864,pop:'28K'},{n:'Baton Rouge',s:'LA',lat:30.458,lng:-91.140,pop:'228K'},
+  {n:'Augusta',s:'ME',lat:44.323,lng:-69.765,pop:'19K'},{n:'Annapolis',s:'MD',lat:38.974,lng:-76.490,pop:'40K'},
+  {n:'Boston',s:'MA',lat:42.358,lng:-71.063,pop:'675K'},{n:'Lansing',s:'MI',lat:42.732,lng:-84.555,pop:'112K'},
+  {n:'St. Paul',s:'MN',lat:44.944,lng:-93.094,pop:'311K'},{n:'Jackson',s:'MS',lat:32.298,lng:-90.180,pop:'153K'},
+  {n:'Jefferson City',s:'MO',lat:38.572,lng:-92.173,pop:'43K'},{n:'Helena',s:'MT',lat:46.595,lng:-112.027,pop:'33K'},
+  {n:'Lincoln',s:'NE',lat:40.808,lng:-96.699,pop:'295K'},{n:'Carson City',s:'NV',lat:39.161,lng:-119.754,pop:'58K'},
+  {n:'Concord',s:'NH',lat:43.220,lng:-71.549,pop:'44K'},{n:'Trenton',s:'NJ',lat:40.221,lng:-74.756,pop:'91K'},
+  {n:'Santa Fe',s:'NM',lat:35.667,lng:-105.964,pop:'84K'},{n:'Albany',s:'NY',lat:42.659,lng:-73.781,pop:'99K'},
+  {n:'Raleigh',s:'NC',lat:35.771,lng:-78.638,pop:'467K'},{n:'Bismarck',s:'ND',lat:46.813,lng:-100.779,pop:'73K'},
+  {n:'Columbus',s:'OH',lat:39.962,lng:-83.000,pop:'905K'},{n:'Oklahoma City',s:'OK',lat:35.482,lng:-97.534,pop:'681K'},
+  {n:'Salem',s:'OR',lat:44.931,lng:-123.029,pop:'174K'},{n:'Harrisburg',s:'PA',lat:40.269,lng:-76.875,pop:'50K'},
+  {n:'Providence',s:'RI',lat:41.830,lng:-71.414,pop:'190K'},{n:'Columbia',s:'SC',lat:34.000,lng:-81.035,pop:'136K'},
+  {n:'Pierre',s:'SD',lat:44.367,lng:-100.346,pop:'14K'},{n:'Nashville',s:'TN',lat:36.165,lng:-86.784,pop:'689K'},
+  {n:'Austin',s:'TX',lat:30.266,lng:-97.750,pop:'978K'},{n:'Salt Lake City',s:'UT',lat:40.777,lng:-111.888,pop:'200K'},
+  {n:'Montpelier',s:'VT',lat:44.260,lng:-72.576,pop:'8K'},{n:'Richmond',s:'VA',lat:37.554,lng:-77.460,pop:'226K'},
+  {n:'Olympia',s:'WA',lat:47.042,lng:-122.893,pop:'52K'},{n:'Charleston',s:'WV',lat:38.350,lng:-81.633,pop:'48K'},
+  {n:'Madison',s:'WI',lat:43.073,lng:-89.401,pop:'269K'},{n:'Cheyenne',s:'WY',lat:41.145,lng:-104.802,pop:'65K'},
+  {n:'Washington DC',s:'DC',lat:38.907,lng:-77.036,pop:'712K'}
+];
+
+const CITIES=[
+  {n:'New York',s:'NY',lat:40.713,lng:-74.006,pop:8.3},{n:'Los Angeles',s:'CA',lat:34.052,lng:-118.244,pop:3.9},
+  {n:'Chicago',s:'IL',lat:41.878,lng:-87.630,pop:2.7},{n:'Houston',s:'TX',lat:29.760,lng:-95.370,pop:2.3},
+  {n:'San Antonio',s:'TX',lat:29.424,lng:-98.494,pop:1.4},{n:'San Diego',s:'CA',lat:32.715,lng:-117.161,pop:1.4},
+  {n:'Dallas',s:'TX',lat:32.776,lng:-96.797,pop:1.3},{n:'Jacksonville',s:'FL',lat:30.332,lng:-81.656,pop:1.0},
+  {n:'San Jose',s:'CA',lat:37.338,lng:-121.886,pop:1.0},{n:'Fort Worth',s:'TX',lat:32.755,lng:-97.333,pop:0.93},
+  {n:'Charlotte',s:'NC',lat:35.227,lng:-80.843,pop:0.88},{n:'San Francisco',s:'CA',lat:37.774,lng:-122.419,pop:0.87},
+  {n:'Seattle',s:'WA',lat:47.606,lng:-122.332,pop:0.74},{n:'El Paso',s:'TX',lat:31.760,lng:-106.487,pop:0.68},
+  {n:'Las Vegas',s:'NV',lat:36.175,lng:-115.136,pop:0.64},{n:'Louisville',s:'KY',lat:38.252,lng:-85.759,pop:0.63},
+  {n:'Memphis',s:'TN',lat:35.149,lng:-90.049,pop:0.63},{n:'Portland',s:'OR',lat:45.523,lng:-122.676,pop:0.65},
+  {n:'Baltimore',s:'MD',lat:39.290,lng:-76.612,pop:0.59},{n:'Milwaukee',s:'WI',lat:43.039,lng:-87.907,pop:0.58},
+  {n:'Albuquerque',s:'NM',lat:35.085,lng:-106.651,pop:0.56},{n:'Tucson',s:'AZ',lat:32.253,lng:-110.912,pop:0.54},
+  {n:'Kansas City',s:'MO',lat:39.099,lng:-94.578,pop:0.49},{n:'Atlanta',s:'GA',lat:33.749,lng:-84.388,pop:0.50},
+  {n:'Omaha',s:'NE',lat:41.258,lng:-95.937,pop:0.48},{n:'Colorado Springs',s:'CO',lat:38.833,lng:-104.821,pop:0.47},
+  {n:'Minneapolis',s:'MN',lat:44.979,lng:-93.265,pop:0.43},{n:'Tampa',s:'FL',lat:27.947,lng:-82.458,pop:0.38},
+  {n:'New Orleans',s:'LA',lat:29.951,lng:-90.071,pop:0.38},{n:'Detroit',s:'MI',lat:42.331,lng:-83.046,pop:0.64},
+  {n:'Miami',s:'FL',lat:25.774,lng:-80.194,pop:0.44},{n:'Pittsburgh',s:'PA',lat:40.440,lng:-79.996,pop:0.31},
+  {n:'Cleveland',s:'OH',lat:41.499,lng:-81.695,pop:0.37},{n:'Cincinnati',s:'OH',lat:39.101,lng:-84.512,pop:0.30},
+  {n:'Buffalo',s:'NY',lat:42.886,lng:-78.878,pop:0.27},{n:'St. Louis',s:'MO',lat:38.627,lng:-90.199,pop:0.30},
+  {n:'Birmingham',s:'AL',lat:33.520,lng:-86.802,pop:0.21},{n:'Spokane',s:'WA',lat:47.659,lng:-117.426,pop:0.22},
+  {n:'Durham',s:'NC',lat:35.994,lng:-78.899,pop:0.28},{n:'Anchorage',s:'AK',lat:61.218,lng:-149.900,pop:0.29},
+  {n:'Riverside',s:'CA',lat:33.980,lng:-117.375,pop:0.31},{n:'Lexington',s:'KY',lat:38.040,lng:-84.503,pop:0.32},
+  {n:'Stockton',s:'CA',lat:37.957,lng:-121.291,pop:0.32},{n:'Corpus Christi',s:'TX',lat:27.801,lng:-97.397,pop:0.33},
+  {n:'St. Paul',s:'MN',lat:44.944,lng:-93.094,pop:0.31},{n:'Virginia Beach',s:'VA',lat:36.853,lng:-75.978,pop:0.45},
+  {n:'Greensboro',s:'NC',lat:36.073,lng:-79.792,pop:0.30},{n:'Orlando',s:'FL',lat:28.538,lng:-81.379,pop:0.31},
+  {n:'Tulsa',s:'OK',lat:36.154,lng:-95.993,pop:0.41},{n:'Wichita',s:'KS',lat:37.692,lng:-97.337,pop:0.39},
+  {n:'Bakersfield',s:'CA',lat:35.373,lng:-119.019,pop:0.38},{n:'Aurora',s:'CO',lat:39.729,lng:-104.832,pop:0.37},
+  {n:'Baton Rouge',s:'LA',lat:30.443,lng:-91.187,pop:0.23},{n:'Richmond',s:'VA',lat:37.541,lng:-77.434,pop:0.23},
+  {n:'Fresno',s:'CA',lat:36.737,lng:-119.787,pop:0.54},{n:'Raleigh',s:'NC',lat:35.779,lng:-78.638,pop:0.47},
+  {n:'Long Beach',s:'CA',lat:33.770,lng:-118.193,pop:0.47},{n:'Sacramento',s:'CA',lat:38.555,lng:-121.469,pop:0.53},
+];
+
+const HUBS={
+  Atlanta:true,'Dallas/FW':true,Chicago:true,Denver:true,Houston:true,'Los Angeles':true,
+  'New York':true,Seattle:true,'San Francisco':true,Miami:true,Phoenix:true,Charlotte:true
+};
+const AIRPORTS={
+  ATL:{n:'ATL',lat:33.641,lng:-84.427},ORD:{n:'ORD',lat:41.976,lng:-87.904},
+  LAX:{n:'LAX',lat:33.942,lng:-118.408},DFW:{n:'DFW',lat:32.896,lng:-97.037},
+  DEN:{n:'DEN',lat:39.856,lng:-104.674},JFK:{n:'JFK',lat:40.640,lng:-73.779},
+  SFO:{n:'SFO',lat:37.619,lng:-122.375},LAS:{n:'LAS',lat:36.080,lng:-115.152},
+  SEA:{n:'SEA',lat:47.449,lng:-122.309},MCO:{n:'MCO',lat:28.430,lng:-81.309},
+  MIA:{n:'MIA',lat:25.796,lng:-80.287},PHX:{n:'PHX',lat:33.435,lng:-112.007},
+  IAH:{n:'IAH',lat:29.985,lng:-95.339},BOS:{n:'BOS',lat:42.364,lng:-71.005},
+  MSP:{n:'MSP',lat:44.882,lng:-93.221},DTW:{n:'DTW',lat:42.213,lng:-83.353},
+  CLT:{n:'CLT',lat:35.214,lng:-80.943},PHL:{n:'PHL',lat:39.872,lng:-75.243},
+  LGA:{n:'LGA',lat:40.777,lng:-73.873},BWI:{n:'BWI',lat:39.178,lng:-76.669}
+};
+
+const svg=d3.select('#map-svg'),cont=document.getElementById('map-container'),tip=document.getElementById('tip'),leg=document.getElementById('leg');
+let proj,pathGen,zoom,gBase,gSplit,gCap,gCit,gMisc,stFeat,statesMap={};
+
+function scaledColor(layer,val){
+  return getDemoColor(layer,val);
+}
+
+function getActiveOverlays(abbr){
+  return OVERLAY_LAYERS.filter(l=>ACTIVE[l]&&CATS[l]&&CATS[l].has(abbr));
+}
+
+function renderStateFill(pathEl,d){
+  const abbr=d.abbr;
+  if(activeDemo){
+    const val=DDATA[activeDemo]?.[abbr];
+    pathEl.attr('fill',getDemoColor(activeDemo,val));
+    return;
+  }
+  const overlays=getActiveOverlays(abbr);
+  if(overlays.length===0){pathEl.attr('fill','#f0ece4');return;}
+  if(overlays.length===1){pathEl.attr('fill',CATCOLS[overlays[0]]);return;}
+  const id='split_'+abbr+'_'+overlays.join('_');
+  let defs=svg.select('defs');
+  if(defs.empty())defs=svg.insert('defs','g');
+  if(svg.select('#'+id).empty()){
+    const n=overlays.length;
+    const pat=defs.append('pattern').attr('id',id).attr('patternUnits','userSpaceOnUse').attr('width',n*8).attr('height',8);
+    overlays.forEach((ol,i)=>{
+      pat.append('rect').attr('x',i*8).attr('y',0).attr('width',8).attr('height',8).attr('fill',CATCOLS[ol]);
+    });
+  }
+  pathEl.attr('fill','url(#'+id+')');
+}
+
+async function init(){
+  const w=cont.clientWidth,h=cont.clientHeight;
+  proj=d3.geoAlbersUsa().scale(w*1.25).translate([w/2,h/2]);
+  pathGen=d3.geoPath().projection(proj);
+  zoom=d3.zoom().scaleExtent([0.4,16]).on('zoom',ev=>{svg.select('g#main').attr('transform',ev.transform);});
+  svg.call(zoom);
+  const main=svg.append('g').attr('id','main');
+  gBase=main.append('g').attr('id','g-base');
+  gSplit=main.append('g').attr('id','g-split');
+  gCap=main.append('g').attr('id','g-cap');
+  gCit=main.append('g').attr('id','g-cit');
+  gMisc=main.append('g').attr('id','g-misc');
+  let topo;
+  try{const r=await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json');topo=await r.json();}
+  catch(e){cont.innerHTML='<div style="padding:2rem;color:var(--color-text-secondary)">Map data failed to load.</div>';return;}
+  const feat=topojson.feature(topo,topo.objects.states);
+  feat.features.forEach(f=>{f.abbr=F2A[f.id.toString().padStart(2,'0')];if(f.abbr)statesMap[f.abbr]=f;});
+  stFeat=feat.features;
+  drawStates();
+  drawCapitals();
+  drawCities();
+}
+
+function drawStates(){
+  gBase.selectAll('*').remove();
+  if(!stFeat)return;
+  const paths=gBase.selectAll('path').data(stFeat).join('path')
+    .attr('d',pathGen)
+    .attr('stroke','#111').attr('stroke-width',1.6).attr('stroke-linejoin','round');
+  paths.each(function(d){renderStateFill(d3.select(this),d);});
+  paths.on('mousemove',(ev,d)=>{
+    const abbr=d.abbr;if(!abbr)return;
+    const sd=STATE[abbr]||{};
+    const ol=getActiveOverlays(abbr);
+    const tags=ol.map(l=>`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${CATCOLS[l]};margin-right:4px"></span>${l}`).join('<br>');
+    const extras=[];
+    if(ACTIVE.pop&&DDATA.pop[abbr])extras.push(`Density: ${DDATA.pop[abbr]}/mi²`);
+    if(activeDemo&&LEGENDS[activeDemo]&&DDATA[activeDemo]?.[abbr]!=null)extras.push(`${LEGENDS[activeDemo].t.split('(')[0].trim()}: ${LEGENDS[activeDemo].fmt(DDATA[activeDemo][abbr])}`);
+    if(!activeDemo&&!ACTIVE.pop){
+      ['income','age','college','gdp'].forEach(k=>{if(DDATA[k]&&DDATA[k][abbr])extras.push(LEGENDS[k].fmt(DDATA[k][abbr])+' '+LEGENDS[k].t.split(' ')[0].toLowerCase());});
+    }
+    tip.style.display='block';
+    const rect=cont.getBoundingClientRect();
+    tip.style.left=Math.min(ev.clientX-rect.left+12,rect.width-240)+'px';
+    tip.style.top=Math.max(ev.clientY-rect.top-10,5)+'px';
+    tip.innerHTML=`<b>${sd.n||abbr}</b><span style="color:var(--color-text-secondary);font-size:11px">Pop: ${sd.pop||'?'} · Cap: ${sd.cap||'?'}</span>${tags?'<br>'+tags:''}${extras.length?'<br><span style="color:var(--color-text-secondary);font-size:10.5px">'+extras.join(' · ')+'</span>':''}`;
+  }).on('mouseleave',()=>tip.style.display='none');
+  drawStateLabels();
+}
+
+function drawStateLabels(){
+  gSplit.selectAll('*').remove();
+  if(!ACTIVE.labels||!stFeat)return;
+  stFeat.forEach(f=>{
+    const c=pathGen.centroid(f);
+    if(!c||isNaN(c[0]))return;
+    gSplit.append('text').attr('x',c[0]).attr('y',c[1]).attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('font-size','7px').attr('font-weight','700').attr('fill','#111').attr('pointer-events','none')
+      .text(f.abbr||'');
+  });
+}
+
+function dedup(pts,minDist){
+  const out=[];
+  pts.forEach(p=>{
+    const proj_=proj([p.lng,p.lat]);if(!proj_)return;
+    const too_close=out.some(o=>{
+      const op=proj([o.lng,o.lat]);
+      if(!op)return false;
+      return Math.hypot(proj_[0]-op[0],proj_[1]-op[1])<minDist;
+    });
+    if(!too_close)out.push(p);
+  });
+  return out;
+}
+
+function drawCapitals(){
+  gCap.selectAll('*').remove();
+  if(!ACTIVE.capitals)return;
+  const pts=dedup(CAPS,14);
+  pts.forEach(c=>{
+    const p=proj([c.lng,c.lat]);if(!p)return;
+    const g=gCap.append('g').attr('transform',`translate(${p[0]},${p[1]})`);
+    g.append('polygon').attr('points','0,-5 4,3 -4,3').attr('fill','#1d4ed8').attr('stroke','#fff').attr('stroke-width',1);
+    if(c.pop!=='8K'&&c.pop!=='14K'&&c.pop!=='19K'&&c.pop!=='28K'&&c.pop!=='33K'&&c.pop!=='40K'){
+      g.append('text').attr('x',5).attr('y',4).attr('font-size','6.5px').attr('fill','#1e3a8a').attr('font-weight','700').attr('pointer-events','none').text(c.n);
+    }
+    g.on('mousemove',ev=>{
+      const rect=cont.getBoundingClientRect();
+      tip.style.display='block';tip.style.left=(ev.clientX-rect.left+10)+'px';tip.style.top=(ev.clientY-rect.top-10)+'px';
+      tip.innerHTML=`<b>${c.n}</b><span style="color:var(--color-text-secondary)">State capital · Pop: ${c.pop}</span>`;
+    }).on('mouseleave',()=>tip.style.display='none');
+  });
+}
+
+function drawCities(){
+  gCit.selectAll('*').remove();
+  if(!ACTIVE.cities)return;
+  const sorted=[...CITIES].sort((a,b)=>b.pop-a.pop);
+  const pts=dedup(sorted,18);
+  pts.forEach(c=>{
+    const p=proj([c.lng,c.lat]);if(!p)return;
+    const r=Math.max(2.5,Math.min(7,c.pop*1.9));
+    const g=gCit.append('g').attr('transform',`translate(${p[0]},${p[1]})`);
+    g.append('circle').attr('r',r).attr('fill','rgba(15,23,42,0.72)').attr('stroke','#fff').attr('stroke-width',1);
+    if(c.pop>0.6){
+      g.append('text').attr('x',r+3).attr('y',3.5).attr('font-size','7.5px').attr('fill','#111').attr('font-weight','700').attr('pointer-events','none').text(c.n);
+    }else if(c.pop>0.3){
+      g.append('text').attr('x',r+2).attr('y',3).attr('font-size','6.5px').attr('fill','#1e293b').attr('font-weight','600').attr('pointer-events','none').text(c.n);
+    }
+    g.on('mousemove',ev=>{
+      const rect=cont.getBoundingClientRect();
+      tip.style.display='block';tip.style.left=Math.min(ev.clientX-rect.left+10,rect.width-240)+'px';tip.style.top=(ev.clientY-rect.top-10)+'px';
+      tip.innerHTML=`<b>${c.n}</b><span style="color:var(--color-text-secondary)">Pop: ${c.pop.toFixed(2)}M · ${STATE[c.s]?.n||c.s}</span>`;
+    }).on('mouseleave',()=>tip.style.display='none');
+  });
+}
+
+function drawMisc(){
+  gMisc.selectAll('*').remove();
+  if(ACTIVE.airports){
+    Object.values(AIRPORTS).forEach(a=>{
+      const p=proj([a.lng,a.lat]);if(!p)return;
+      const g=gMisc.append('g').attr('transform',`translate(${p[0]},${p[1]})`);
+      g.append('rect').attr('x',-4).attr('y',-4).attr('width',8).attr('height',8).attr('fill','#7c3aed').attr('stroke','#fff').attr('stroke-width',0.8).attr('transform','rotate(45)');
+      g.append('text').attr('x',6).attr('y',3).attr('font-size','6px').attr('fill','#4c1d95').attr('font-weight','700').attr('pointer-events','none').text(a.n);
+      g.on('mousemove',ev=>{
+        const rect=cont.getBoundingClientRect();
+        tip.style.display='block';tip.style.left=(ev.clientX-rect.left+10)+'px';tip.style.top=(ev.clientY-rect.top-10)+'px';
+        tip.innerHTML=`<b>${a.n}</b><span style="color:var(--color-text-secondary)">Major hub airport</span>`;
+      }).on('mouseleave',()=>tip.style.display='none');
+    });
+  }
+}
+
+function updateLegend(){
+  if(!activeDemo){leg.style.display='none';return;}
+  const cfg=LEGENDS[activeDemo];if(!cfg){leg.style.display='none';return;}
+  leg.style.display='block';
+  document.getElementById('leg-title').textContent=cfg.t;
+  document.getElementById('leg-body').innerHTML=cfg.steps.map(s=>`<div class="lr"><div class="ls" style="background:${s[1]}"></div>${cfg.fmt(s[0])}</div>`).join('');
+}
+
+function tog(name){
+  ACTIVE[name]=!ACTIVE[name];
+  syncBtn(name,ACTIVE[name]);
+  if(BASE_LAYERS.includes(name)){
+    if(name==='capitals')drawCapitals();
+    else if(name==='cities')drawCities();
+    else if(name==='labels')drawStateLabels();
+    else drawMisc();
+    return;
+  }
+  drawStates();
+}
+
+function togDemo(name){
+  if(DEMO_LAYERS.includes(name)){
+    const wasOn=activeDemo===name;
+    activeDemo=wasOn?null:name;
+    DEMO_LAYERS.forEach(l=>{syncBtn(l,l===activeDemo);});
+    updateLegend();drawStates();return;
+  }
+  ACTIVE[name]=!ACTIVE[name];
+  syncBtn(name,ACTIVE[name]);
+  drawStates();
+}
+
+function syncBtn(name,on){
+  const btn=document.getElementById('btn-'+name);if(!btn)return;
+  const col=btn.dataset.color;
+  if(on){btn.classList.add('on');btn.style.background=col;btn.style.color='#fff';btn.style.borderColor=col;}
+  else{btn.classList.remove('on');btn.style.background='var(--color-background-primary)';btn.style.color=col;btn.style.borderColor=col;}
+}
+
+function zoomIn(){svg.transition().call(zoom.scaleBy,1.6);}
+function zoomOut(){svg.transition().call(zoom.scaleBy,0.625);}
+function resetView(){svg.transition().duration(500).call(zoom.transform,d3.zoomIdentity);}
+
+document.querySelectorAll('.lb').forEach(b=>{
+  const col=b.dataset.color;
+  if(b.classList.contains('on')){b.style.background=col;b.style.color='#fff';b.style.borderColor=col;}
+  else{b.style.color=col;b.style.borderColor=col;}
+});
+
+init();
+</script>
